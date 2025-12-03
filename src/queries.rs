@@ -10,3 +10,11 @@ type URI = String;
     response_derives = "Debug"
 )]
 pub struct BasicStats;
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "src/schema.docs.graphql",
+    query_path = "src/repostats.graphql",
+    response_derives = "Debug"
+)]
+pub struct RepoStats;

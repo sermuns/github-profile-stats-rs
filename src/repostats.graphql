@@ -1,18 +1,18 @@
-query($owner: String!, $endCursor: String) {
+query RepoStats($owner: String!, $endCursor: String) {
   user(login: $owner) {
     repositories(first: 100, after: $endCursor, ownerAffiliations: OWNER) {
-      totalCount
+      # totalCount
       nodes {
-        stargazerCount 
-        forkCount
-        isArchived
+        # stargazerCount 
+        # forkCount
+        # isArchived
         isFork
         isPrivate
-        isTemplate
-        name
-        watchers {
-          totalCount
-        }
+        # isTemplate
+        # name
+        # watchers {
+        #   totalCount
+        # }
         languages(first: 100, orderBy: {direction: DESC, field: SIZE}) {
           totalCount
           totalSize
@@ -25,10 +25,10 @@ query($owner: String!, $endCursor: String) {
           }
         }
       }
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-    }              
+      # pageInfo {
+      #   hasNextPage
+      #   endCursor
+      # }
+    }
   }
 }
