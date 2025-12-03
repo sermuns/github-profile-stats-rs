@@ -1,0 +1,34 @@
+query($owner: String!, $endCursor: String) {
+  user(login: $owner) {
+    repositories(first: 100, after: $endCursor, ownerAffiliations: OWNER) {
+      totalCount
+      nodes {
+        stargazerCount 
+        forkCount
+        isArchived
+        isFork
+        isPrivate
+        isTemplate
+        name
+        watchers {
+          totalCount
+        }
+        languages(first: 100, orderBy: {direction: DESC, field: SIZE}) {
+          totalCount
+          totalSize
+          edges {
+            size
+            node { 
+              color
+              name
+            }
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }              
+  }
+}

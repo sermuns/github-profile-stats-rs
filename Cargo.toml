@@ -1,0 +1,17 @@
+[package]
+name = "github-profile-stats-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+prettytable-rs = "^0.10.0"
+clap = { version = "^4.0", features = ["derive"] }
+log = "^0.4"
+env_logger = "0.10.2"
+graphql_client = { version = "0.14.0", features = ["reqwest-blocking"] }
+serde = { version = "1.0.228", features = ["derive"] }
+anyhow = "1.0.100"
+
+# [patch.crates-io]
+# reqwest = { version = "0.12" }

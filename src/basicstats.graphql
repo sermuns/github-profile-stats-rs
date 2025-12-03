@@ -1,0 +1,36 @@
+query BasicStats($owner: String!) {
+  user(login: $owner) {
+    contributionsCollection {
+      totalCommitContributions 
+      totalIssueContributions 
+      totalPullRequestContributions
+      totalPullRequestReviewContributions
+      totalRepositoryContributions
+      restrictedContributionsCount
+      contributionYears
+    }
+    followers {
+      totalCount
+    }
+    following {
+      totalCount
+    }
+    issues {
+      totalCount
+    }
+    login
+    name
+    pullRequests {
+      totalCount
+    }
+    repositoriesContributedTo {
+      totalCount
+    }
+    sponsorshipsAsMaintainer {
+      totalCount
+    }
+    sponsorshipsAsSponsor  {
+      totalCount
+    }
+  }
+}
