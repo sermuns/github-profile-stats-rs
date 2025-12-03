@@ -2,3 +2,6 @@
 
 # get it directly from github https://docs.github.com/en/graphql/overview/public-schema
 schema.docs.graphql 
+
+/*.svg
+/*.pdf
