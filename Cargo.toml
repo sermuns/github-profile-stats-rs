@@ -14,6 +14,7 @@ typst-as-lib = "0.15.0"
 typst-pdf = "0.14.0"
 typst-svg = "0.14.0"
 typst-library = "0.14.0"
+bincode = "2.0.1"
 
 # [patch.crates-io]
 # reqwest = { version = "0.12" }

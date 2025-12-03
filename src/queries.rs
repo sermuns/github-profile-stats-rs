@@ -1,3 +1,4 @@
+use bincode::{Decode, Encode};
 use graphql_client::GraphQLQuery;
 
 #[allow(clippy::upper_case_acronyms)]
@@ -15,6 +16,6 @@ pub struct BasicStats;
 #[graphql(
     schema_path = "src/schema.docs.graphql",
     query_path = "src/repostats.graphql",
-    response_derives = "Debug"
+    response_derives = "Debug,Encode,Decode"
 )]
 pub struct RepoStats;
