@@ -1,7 +1,10 @@
 use anyhow::{Context, Result, bail};
+use std::collections::HashMap;
+use typst::foundations::IntoValue;
 use typst_as_lib::{TypstAsLibError, TypstEngine};
 use typst_library::{
     diag::Warned,
+    foundations::{Dict, Str, Value},
     layout::{Page, PagedDocument},
 };
 
@@ -22,7 +25,7 @@ pub static NOTO_SANS_BOLD_ITALIC: &[u8] = include_bytes!(concat!(
     "/assets/NotoSans-BoldItalic.ttf"
 ));
 
-pub fn render_svg(template_str: &str) -> Result<String> {
+pub fn compile_svg(template_str: &str, input: Dict) -> Result<String> {
     let languages_template = TypstEngine::builder()
         .main_file(template_str)
         .fonts([
@@ -31,10 +34,11 @@ pub fn render_svg(template_str: &str) -> Result<String> {
             NOTO_SANS_BOLD,
             NOTO_SANS_BOLD_ITALIC,
         ])
+        .with_package_file_resolver()
         .build();
 
     let warned_document: Warned<Result<PagedDocument, TypstAsLibError>> =
-        languages_template.compile();
+        languages_template.compile_with_input(input);
 
     let warnings = warned_document.warnings;
     if !warnings.is_empty() {
@@ -47,9 +51,9 @@ pub fn render_svg(template_str: &str) -> Result<String> {
                     + &format!("\n {}: {}", i + 1, warning.message))
         );
     }
-    let document_pages: Vec<Page> = warned_document.output?.pages;
+    let document_pages: Vec<Page> = warned_document.output.context("ERROR COMPILING")?.pages;
     if document_pages.len() > 1 {
-        bail!("output document has multiple pages!")
+        println!("output document has multiple pages!")
     }
     let first_page = document_pages
         .first()
