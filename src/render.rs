@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use color_eyre::eyre::{ContextCompat, WrapErr, bail};
 use std::collections::HashMap;
 use typst::foundations::IntoValue;
 use typst_as_lib::{TypstAsLibError, TypstEngine};
@@ -25,7 +25,7 @@ pub static NOTO_SANS_BOLD_ITALIC: &[u8] = include_bytes!(concat!(
     "/assets/NotoSans-BoldItalic.ttf"
 ));
 
-pub fn compile_svg(template_str: &str, input: Dict) -> Result<String> {
+pub fn compile_svg(template_str: &str, input: Dict) -> color_eyre::Result<String> {
     let languages_template = TypstEngine::builder()
         .main_file(template_str)
         .fonts([
@@ -51,13 +51,13 @@ pub fn compile_svg(template_str: &str, input: Dict) -> Result<String> {
                     + &format!("\n {}: {}", i + 1, warning.message))
         );
     }
-    let document_pages: Vec<Page> = warned_document.output.context("ERROR COMPILING")?.pages;
+    let document_pages: Vec<Page> = warned_document.output.wrap_err("ERROR COMPILING")?.pages;
     if document_pages.len() > 1 {
         println!("output document has multiple pages!")
     }
     let first_page = document_pages
         .first()
-        .context("output document has no pages!")?;
+        .wrap_err("output document has no pages!")?;
 
     Ok(typst_svg::svg(first_page))
 }
