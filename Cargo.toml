@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 async-scoped = { version = "0.9.0", features = ["tokio"] }
+camino = "1.2.2"
 clap = { version = "^4.0", features = ["derive"] }
 color-eyre = { version = "0.6.5", default-features = false }
 derive_typst_intoval = "0.6.0"

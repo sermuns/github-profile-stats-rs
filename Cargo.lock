@@ -1228,6 +1228,7 @@ name = "github-profile-stats-rs"
 version = "0.1.0"
 dependencies = [
  "async-scoped",
+ "camino",
  "clap",
  "color-eyre",
  "derive_typst_intoval",

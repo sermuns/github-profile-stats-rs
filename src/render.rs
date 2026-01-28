@@ -11,9 +11,9 @@ const NOTO_SANS_REGULAR: &[u8] = include_bytes!("../assets/NotoSans-Regular.ttf"
 const NOTO_SANS_BOLD: &[u8] = include_bytes!("../assets/NotoSans-Bold.ttf");
 // const NOTO_SANS_BOLD_ITALIC: &[u8] = include_bytes!("../assets/NotoSans-BoldItalic.ttf");
 const MONASPACE_KRYPTON: &[u8] = include_bytes!("../assets/MonaspaceKrypton-Regular.otf");
+const MONASPACE_KRYPTON_BOLD: &[u8] = include_bytes!("../assets/MonaspaceKrypton-Bold.otf");
 
 pub fn compile_svg(template_str: &str, input: Dict) -> color_eyre::Result<String> {
-    println!("doing!");
     let languages_template = TypstEngine::builder()
         .main_file(template_str)
         .fonts([
@@ -22,10 +22,10 @@ pub fn compile_svg(template_str: &str, input: Dict) -> color_eyre::Result<String
             NOTO_SANS_BOLD,
             // NOTO_SANS_BOLD_ITALIC,
             MONASPACE_KRYPTON,
+            MONASPACE_KRYPTON_BOLD,
         ])
         .with_package_file_resolver()
         .build();
-    println!("built!");
 
     let warned_document: Warned<Result<PagedDocument, TypstAsLibError>> =
         languages_template.compile_with_input(input);

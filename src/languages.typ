@@ -8,7 +8,8 @@
   fill: blue.desaturate(50%).darken(75%),
 )
 #set text(
-  font: sys.inputs.at("font", default: "Noto Sans"),
+  // font: sys.inputs.at("font", default: "Noto Sans"),
+  font: "Monaspace Krypton",
   fill: luma(90%),
 )
 #show heading: set block(below: 1em)

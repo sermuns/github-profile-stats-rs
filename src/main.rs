@@ -1,3 +1,4 @@
+use camino::Utf8PathBuf;
 use clap::Parser;
 use color_eyre::eyre::{WrapErr, bail};
 use derive_typst_intoval::{IntoDict, IntoValue};
@@ -19,6 +20,9 @@ use crate::render::compile_svg;
 #[derive(Parser)]
 struct Args {
     github_username: String,
+
+    #[arg(short, long, default_value = "languages.svg")]
+    output: Utf8PathBuf,
 
     /// don't include repos that are forks
     #[arg(long, default_value_t = true)]
@@ -43,11 +47,16 @@ struct LinguistLanguage {
     color: Option<String>,
 }
 
-static ARGS: LazyLock<Args> = LazyLock::new(Args::parse);
-
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
+
+    static ARGS: LazyLock<Args> = LazyLock::new(Args::parse);
+    if ARGS.output.is_dir() {
+        bail!("output must be a file. got `{}`", ARGS.output);
+    } else if ARGS.output.extension().is_some_and(|ext| ext != "svg") {
+        bail!("output must end in .svg. got `{}`", ARGS.output);
+    }
 
     let linguist_languages: HashMap<String, LinguistLanguage> =
         serde_yaml_ng::from_reader(Cursor::new(&mut include_bytes!("../assets/languages.yml")))?;
@@ -106,12 +115,17 @@ async fn main() -> color_eyre::Result<()> {
                 let repo_id = repo.id;
 
                 // FIXME: dont' create an octocrab instance...
-                // BUG: might not use the authenticatin when we recreate instance
                 let languages = octocrab
                     .repos_by_id(repo_id)
                     .list_languages()
                     .await
-                    .unwrap(); // FIXME:
+                    .unwrap() // FIXME:
+                    .into_iter()
+                    .filter(|(lang_name, _)| {
+                        // FIXME: stop allocating strings.. can we precompute lowercases?
+                        !ARGS.skipped_languages.contains(&lang_name.to_lowercase())
+                    });
+
                 Some(languages)
             }
         })
@@ -167,7 +181,7 @@ async fn main() -> color_eyre::Result<()> {
     })
     .await??;
 
-    fs::write("languages.svg", languages_svg)?;
+    fs::write(&ARGS.output, languages_svg)?;
 
     Ok(())
 }
