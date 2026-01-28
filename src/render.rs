@@ -1,41 +1,31 @@
 use color_eyre::eyre::{ContextCompat, WrapErr, bail};
-use std::collections::HashMap;
-use typst::foundations::IntoValue;
 use typst_as_lib::{TypstAsLibError, TypstEngine};
 use typst_library::{
     diag::Warned,
-    foundations::{Dict, Str, Value},
+    foundations::Dict,
     layout::{Page, PagedDocument},
 };
 
-pub static NOTO_SANS_REGULAR: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/assets/NotoSans-Regular.ttf"
-));
-pub static NOTO_SANS_ITALIC: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/assets/NotoSans-Italic.ttf"
-));
-pub static NOTO_SANS_BOLD: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/assets/NotoSans-Bold.ttf"
-));
-pub static NOTO_SANS_BOLD_ITALIC: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/assets/NotoSans-BoldItalic.ttf"
-));
+const NOTO_SANS_REGULAR: &[u8] = include_bytes!("../assets/NotoSans-Regular.ttf");
+// const NOTO_SANS_ITALIC: &[u8] = include_bytes!("../assets/NotoSans-Italic.ttf");
+const NOTO_SANS_BOLD: &[u8] = include_bytes!("../assets/NotoSans-Bold.ttf");
+// const NOTO_SANS_BOLD_ITALIC: &[u8] = include_bytes!("../assets/NotoSans-BoldItalic.ttf");
+const MONASPACE_KRYPTON: &[u8] = include_bytes!("../assets/MonaspaceKrypton-Regular.otf");
 
 pub fn compile_svg(template_str: &str, input: Dict) -> color_eyre::Result<String> {
+    println!("doing!");
     let languages_template = TypstEngine::builder()
         .main_file(template_str)
         .fonts([
             NOTO_SANS_REGULAR,
-            NOTO_SANS_ITALIC,
+            // NOTO_SANS_ITALIC,
             NOTO_SANS_BOLD,
-            NOTO_SANS_BOLD_ITALIC,
+            // NOTO_SANS_BOLD_ITALIC,
+            MONASPACE_KRYPTON,
         ])
         .with_package_file_resolver()
         .build();
+    println!("built!");
 
     let warned_document: Warned<Result<PagedDocument, TypstAsLibError>> =
         languages_template.compile_with_input(input);
@@ -55,9 +45,9 @@ pub fn compile_svg(template_str: &str, input: Dict) -> color_eyre::Result<String
     if document_pages.len() > 1 {
         println!("output document has multiple pages!")
     }
-    let first_page = document_pages
+    let first_and_only_page = document_pages
         .first()
         .wrap_err("output document has no pages!")?;
 
-    Ok(typst_svg::svg(first_page))
+    Ok(typst_svg::svg(first_and_only_page))
 }
