@@ -18,6 +18,7 @@ mod render;
 use crate::render::compile_svg;
 
 #[derive(Parser)]
+#[clap(version, about, long_about = None)]
 struct Args {
     github_username: String,
 

@@ -1,5 +1,6 @@
 [package]
 name = "github-profile-stats-rs"
+description = "generate pretty svgs for your profile on GitHub"
 version = "0.1.0"
 edition = "2024"
 
