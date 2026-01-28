@@ -1,9 +1,16 @@
 use clap::Parser;
 use color_eyre::eyre::{WrapErr, bail};
 use derive_typst_intoval::{IntoDict, IntoValue};
-use octocrab::models::repos::Languages;
+use futures::{StreamExt, stream};
+use indicatif::ProgressBar;
+use octocrab::models::{Repository, repos::Languages};
 use serde::Deserialize;
-use std::{collections::HashMap, fs, io::Cursor};
+use std::{
+    collections::HashMap,
+    fs,
+    io::Cursor,
+    sync::{Arc, LazyLock},
+};
 use typst::foundations::{Dict, IntoValue, Value};
 
 mod render;
@@ -36,6 +43,8 @@ struct LinguistLanguage {
     color: Option<String>,
 }
 
+static ARGS: LazyLock<Args> = LazyLock::new(Args::parse);
+
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
@@ -43,9 +52,7 @@ async fn main() -> color_eyre::Result<()> {
     let linguist_languages: HashMap<String, LinguistLanguage> =
         serde_yaml_ng::from_reader(Cursor::new(&mut include_bytes!("../assets/languages.yml")))?;
 
-    let args = Args::parse();
-
-    for skipped_lang in args.skipped_languages {
+    for skipped_lang in &ARGS.skipped_languages {
         if !linguist_languages
             .keys()
             .any(|k| k.to_lowercase() == skipped_lang.to_lowercase())
@@ -56,54 +63,80 @@ async fn main() -> color_eyre::Result<()> {
 
     let github_api_token = std::env::var("GITHUB_TOKEN")
         .wrap_err("GITHUB_TOKEN is needed to avoid rate-limitation")?;
-    let octocrab = octocrab::Octocrab::builder()
-        .personal_token(github_api_token)
-        .build()?;
+    let octocrab = Arc::new(
+        octocrab::Octocrab::builder()
+            .personal_token(github_api_token)
+            .build()?,
+    );
 
-    let user = octocrab.users(args.github_username);
+    let user = octocrab.users(&ARGS.github_username);
     // let user_profile = user.profile().await?;
     // let user_profile_name = user_profile.name.unwrap_or(user_profile.login);
 
-    let mut total_languages = Languages::new();
-
     // TODO: make this concurrent..
+    let mut repos: Vec<Repository> = Vec::new();
     for page_num in 1..u32::MAX {
-        let page = user.repos().page(page_num).send().await?;
-        for repo in page.items {
-            if args.skip_forks && repo.fork.unwrap() {
-                continue;
-            }
-            if args.skip_private && repo.private.unwrap() {
-                continue;
-            }
-            let repo_id = repo.id;
-            let languages = octocrab.repos_by_id(repo_id).list_languages().await?;
-            for (language_name, bytes) in languages {
-                total_languages
-                    .entry(language_name)
-                    .and_modify(|b| *b += bytes)
-                    .or_insert(bytes);
-            }
-        }
-        if page.next.is_none() {
+        let mut page = user.repos().page(page_num).send().await?;
+        let is_last_page = page.next.is_none();
+        repos.append(&mut page.items);
+        if is_last_page {
             break;
         }
     }
 
-    let mut input = Dict::new();
+    let pb = Arc::new(ProgressBar::new(repos.len() as u64));
 
+    let repo_language_hashmaps: Vec<_> = stream::iter(repos.into_iter())
+        .map(|repo| {
+            let pb = pb.clone();
+            let octocrab = octocrab.clone();
+            async move {
+                println!("doing {}", &repo.name);
+                pb.inc(1);
+                if ARGS.skip_forks && repo.fork.unwrap() {
+                    return None;
+                }
+                if ARGS.skip_private && repo.private.unwrap() {
+                    return None;
+                }
+                let repo_id = repo.id;
+
+                // FIXME: dont' create an octocrab instance...
+                // BUG: might not use the authenticatin when we recreate instance
+                let languages = octocrab
+                    .repos_by_id(repo_id)
+                    .list_languages()
+                    .await
+                    .unwrap(); // FIXME:
+                Some(languages)
+            }
+        })
+        .buffer_unordered(10)
+        .collect()
+        .await;
+    pb.finish();
+    let mut total_languages = Languages::new();
+    for hashmap in repo_language_hashmaps.into_iter().flatten() {
+        for (lang_name, bytes) in hashmap {
+            total_languages
+                .entry(lang_name)
+                .and_modify(|total_bytes| *total_bytes += bytes)
+                .or_insert(bytes);
+        }
+    }
     let mut total_languages_vec: Vec<_> = total_languages.into_iter().collect();
-
     total_languages_vec.sort_by_key(|(_, bytes)| !*bytes);
 
-    if args.num_languages != 0 {
+    if ARGS.num_languages != 0 {
         let other_bytes = total_languages_vec
             .iter()
-            .skip(args.num_languages)
+            .skip(ARGS.num_languages)
             .fold(0, |acc, (_, bytes)| acc + bytes);
-        total_languages_vec.truncate(args.num_languages);
+        total_languages_vec.truncate(ARGS.num_languages);
         total_languages_vec.push(("Other".into(), other_bytes));
     }
+
+    let mut input = Dict::new();
 
     let languages_dict = Dict::from_iter(total_languages_vec.iter().map(|(name, bytes)| {
         (
@@ -123,6 +156,8 @@ async fn main() -> color_eyre::Result<()> {
     }));
     input.insert("languages".into(), Value::Dict(languages_dict));
 
+    // HACK: because typst-as-lib uses internal blocking reqwest to resolve packages we have
+    // to spawn this as blocking..
     let languages_svg = tokio::task::spawn_blocking(move || {
         compile_svg(include_str!("../src/languages.typ"), input)
     })

@@ -4,9 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+async-scoped = { version = "0.9.0", features = ["tokio"] }
 clap = { version = "^4.0", features = ["derive"] }
 color-eyre = { version = "0.6.5", default-features = false }
 derive_typst_intoval = "0.6.0"
+futures = "0.3.31"
+indicatif = { version = "0.18.3", features = ["tokio"] }
 octocrab = "0.49.5"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml_ng = "0.10.0"
