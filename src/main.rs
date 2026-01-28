@@ -2,7 +2,7 @@ use clap::Parser;
 use color_eyre::eyre::{WrapErr, bail};
 use derive_typst_intoval::{IntoDict, IntoValue};
 use futures::{StreamExt, stream};
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 use octocrab::models::{Repository, repos::Languages};
 use serde::Deserialize;
 use std::{
@@ -84,15 +84,19 @@ async fn main() -> color_eyre::Result<()> {
         }
     }
 
-    let pb = Arc::new(ProgressBar::new(repos.len() as u64));
+    let pb = Arc::new(
+        ProgressBar::new(repos.len() as u64).with_style(
+            ProgressStyle::with_template("[{elapsed_precise}] {wide_bar} {pos:>7}/{len:7} {msg}")
+                .unwrap(),
+        ),
+    );
 
     let repo_language_hashmaps: Vec<_> = stream::iter(repos.into_iter())
         .map(|repo| {
             let pb = pb.clone();
             let octocrab = octocrab.clone();
             async move {
-                println!("doing {}", &repo.name);
-                pb.inc(1);
+                pb.set_message(repo.name);
                 if ARGS.skip_forks && repo.fork.unwrap() {
                     return None;
                 }
